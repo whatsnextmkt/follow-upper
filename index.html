@@ -1,0 +1,216 @@
+<html lang="en">
+<head>
+    <title>Follow Upper - get followers for your account</title>
+    <meta name="description" content="Get followers for our app" />
+    <meta name="name" content="Follow Users" />
+    <meta charset="UTF-8" />
+
+    <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.css" />
+    <link rel="icon" href="./favicon.ico" />
+
+    <style>
+        .form-control {
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container app">
+        <h2>Follow Upper &tm&</h2>
+        <span>
+            Заметка: перед тем, как начать собирать follower-ов,
+            заполните персональные данные и передайте инфу с Facebook
+            таким образом мы сможем совершать подписки от имени Вашего аккаунта.
+        </span>
+        <form name="GetFacebookAuthToken" id="get-facebook-token" class="panel">
+            <div class="panel-heading">
+                <fb:login-button
+                   scope="public_profile,email"
+                   onlogin="checkLoginState();">
+                </fb:login-button>
+            </div>
+        </form>
+        <form name="GetFollowers" id="get-followers">
+            <span id="business-location-field-mask"></span>
+            <div class="form-group">
+                <input
+                    type="text"
+                    name="businessName"
+                    id="business-name"
+                    class="form-control"
+                    placeholder="Имя компании / заведения"
+                />
+            </div>
+            <div class="form-group">
+                <label for="pingHours">Частота подписок в день</label>
+                <select id="pingHours"></select>
+                <span class="alert alert-primary">Подписываться с часовым интервалом</span>
+            </div>
+            <div class="form-group">
+                <label for="pingMinutes">Частота подписок в минуту</label>
+                <select id="pingMinutes"></select>
+                <span class="alert alert-primary">Подписываться с минутным интервалом</span>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary" type="button" onclick="handleSubmit()">Начать пользоваться</button>
+            </div>
+        </form>
+    </div>
+    <script>
+
+      let AccountData = {};
+
+      function buildHourlyValues() {
+
+          const hourlyValues = [];
+          let i = 0;
+          while(i <= 24) {
+              i++;
+              if (String(i).length === 1) {
+                 i = '0' + i;
+              }
+              hourlyValues.push(String(i));
+              i = Number(i);
+          }
+
+          return hourlyValues;
+      }
+
+      function buildMinuteValues() {
+
+          const minuteValues = [];
+          let i = 0;
+          while (i < 5) {
+              i++;
+              if (i === 1) {
+                  minuteValues.push(i / 2);
+                  minuteValues.push(String(i));
+              } else minuteValues.push(String(i));
+          }
+
+          return minuteValues;
+      }
+
+      function handleChange(e) {
+          AccountData[e.target.name] = e.target.value;
+      }
+
+      function handleValueSelect({ target }) {
+          AccountData[this] = target.value;
+      }
+
+      function handleSubmit() {
+
+          fetch('/', {
+              method: 'POST',
+              body: JSON.stringify(AccountData)
+          }).then(function(done) {
+              // do job with AccountData
+          }).catch(function() {
+              const { userID, accessToken } = AccountData.facebook;
+              fetch('https://graph.facebook.com/v5.0/me/accounts?access_token=' + accessToken).then(function(tokenResponse) {
+                  console.log(tokenResponse)
+              });
+          });
+      }
+
+      function fillData() {
+
+          let pingHourValues = buildHourlyValues();
+          let pingMinuteValues = buildMinuteValues();
+          pingHourValues = pingHourValues.map(function(value) {
+              value = `<option>${value} h.</option>`;
+              return value;
+          });
+          pingMinuteValues = pingMinuteValues.map(function(value) {
+              value = `<option>${value} m.</option>`;
+              return value;
+          });
+
+          document.getElementById('pingMinutes').innerHTML = pingMinuteValues;
+          document.getElementById('pingHours').innerHTML = pingHourValues;
+      }
+
+      function assignListeners() {
+
+          const fields = document.querySelectorAll('input');
+          const hourPingSelect = document.querySelector('#pingHours');
+          const minutePingSelect = document.querySelector('#pingMinutes');
+
+          setTimeout(function() {
+              fields.forEach(function(f) {
+                  f.onchange = handleChange;
+              });
+              hourPingSelect.onchange = handleValueSelect.bind('hourPing');
+              minutePingSelect.onchange = handleValueSelect.bind('minutePing');
+          }, 1000);
+
+          const submitForm = document.getElementById('get-followers');
+          submitForm.onsubmit = handleSubmit;
+      }
+
+      const locationFieldMock = `
+          <div class="form-field form-group">
+              <input
+                  type="text"
+                  name="business-location"
+                  id="business-location"
+                  class="form-control"
+              />
+          </div>
+      `;
+
+      function displayBusinessLocationField() {
+
+          document
+                  .getElementById('business-location-field-mask')
+                  .innerHTML = locationFieldMock;
+      }
+
+      if ('navigator' in window) {
+          navigator.geolocation.getCurrentPosition(acceptLocation);
+
+          function acceptLocation({ cords }) {
+              if (cords) {
+                  AccountData.businessLocation = cords;
+              }
+          }
+
+          if (!AccountData.businessLocation) {
+              displayBusinessLocationField();
+          }
+      }
+
+      assignListeners();
+      fillData();
+
+      window.fbAsyncInit = function() {
+        FB.init({
+          appId: '459676974942198', // use app id specified by Facebook
+          cookie: true,
+          xfbml: true,
+          version: 'v5.0' // use api version specified by Facebook
+        });
+        FB.AppEvents.logPageView();
+      };
+
+      (function(d, s, id){
+         var js, fjs = d.getElementsByTagName(s)[0];
+         if (d.getElementById(id)) {return;}
+         js = d.createElement(s); js.id = id;
+         js.src = "https://connect.facebook.net/en_US/sdk.js";
+         fjs.parentNode.insertBefore(js, fjs);
+       }(document, 'script', 'facebook-jssdk'));
+
+      function handleUserStatus({ authResponse }) {
+          AccountData.facebook = authResponse;
+      }
+
+      function checkLoginState() {
+          FB.getLoginStatus(function(response) {
+              handleUserStatus(response);
+          });
+      }
+    </script>
+</body>
+</html>

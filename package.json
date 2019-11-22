@@ -1,0 +1,7 @@
+{
+  "name": "insta-follower-client",
+  "description": "InstaFollower web client",
+  "dependencies": {
+    "bootstrap": "^4.3.0"
+  }
+}

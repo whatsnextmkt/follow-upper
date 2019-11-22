@@ -1,0 +1,61 @@
+<html lang="en">
+<head>
+    <title>Follow Upper - docs</title>
+    <meta name="description" content="Get followers for our app" />
+    <meta name="name" content="Follow Users" />
+    <meta charset="UTF-8" />
+
+    <link rel="icon" href="../favicon.ico" />
+
+    <style>
+        .terms-and-conditions, .privacy-policy {
+            padding: 20px;
+            border: 2px solid skyblue;
+        }
+    </style>
+</head>
+<body>
+    <div id="terms-container" class="terms-and-conditions"></div>
+    <div id="privacy-container" class="privacy-policy"></div>
+</body>
+<script>
+
+    var TERMS_CONTAINER = document.querySelector('#terms-container');
+    var PRIVACY_CONTAINER = document.querySelector('#privacy-container');
+
+    setTimeout(() => {
+
+        fetchDocFiles();
+
+        TERMS_CONTAINER.hidden = true;
+        PRIVACY_CONTAINER.hidden = true;
+
+        getDocByType();
+    }, 10);
+
+    function getDocByType() {
+
+        const typeHash = window.location.hash;
+        if (typeHash === '#terms') {
+            TERMS_CONTAINER.hidden = true;
+            PRIVACY_CONTAINER.hidden = false;
+        } else if (typeHash === '#privacy') {
+            TERMS_CONTAINER.hidden = false;
+            PRIVACY_CONTAINER.hidden = true;
+        }
+    }
+
+    async function fetchDocFiles() {
+
+        const privacyPolicy = await fetch('/docs/PRIVACY.md');
+        const termsPolicy = await fetch('/docs/TERMS_POLICY.md');
+
+        privacyPolicy.text().then((content) => {
+            TERMS_CONTAINER.innerText = content;
+        });
+        termsPolicy.text().then((content) => {
+            PRIVACY_CONTAINER.innerText = content;
+        });
+    }
+</script>
+</html>
